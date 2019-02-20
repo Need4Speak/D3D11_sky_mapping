@@ -24,6 +24,7 @@
 ///////////////**************new**************////////////////////
 #include <vector>
 ///////////////**************new**************////////////////////
+#include "Car.h"
 
 //Global Declarations - Interfaces//
 IDXGISwapChain* SwapChain;
@@ -122,7 +123,6 @@ XMMATRIX camProjection;
 XMMATRIX d2dWorld;
 
 XMVECTOR camPosition;
-XMVECTOR carPosition;
 XMVECTOR camTarget;
 XMVECTOR camUp;
 XMVECTOR DefaultForward = XMVectorSet(0.0f,0.0f,1.0f, 0.0f);
@@ -136,8 +136,16 @@ XMMATRIX groundWorld;
 float moveLeftRight = 0.0f;
 float moveBackForward = 0.0f;
 
+float carForward = 0.0f;
+float carLeft = 0.0f;
+float carLastForward = 0.0f;
+float carLastLeft = 0.0f;
+
 float camYaw = 0.0f;
 float camPitch = 0.0f;
+
+// 小车左右转向角度
+float camCarTurnRigth = 0.0f;
 
 int cylinderVerticesCount;
 
@@ -573,8 +581,8 @@ void UpdateCamera()
 	camPosition += moveLeftRight*camRight;
 	camPosition += moveBackForward*camForward;
 	// 移动小车
-	carPosition += moveLeftRight * camRight;
-	carPosition += moveBackForward * camForward;
+	carForward += moveBackForward;
+	carLeft += moveLeftRight;
 
 	moveLeftRight = 0.0f;
 	moveBackForward = 0.0f;
@@ -582,6 +590,7 @@ void UpdateCamera()
 	camTarget = camPosition + camTarget;	
 
 	camView = XMMatrixLookAtLH( camPosition, camTarget, camUp );
+	test();
 }
 
 void DetectInput(double time)
@@ -621,6 +630,12 @@ void DetectInput(double time)
 	if((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
 	{
 		camYaw += mouseLastState.lX * 0.001f;
+		if (camYaw > 0.4f) {
+			camYaw = 0.4f;
+		}
+		else if (camYaw < -0.4f) {
+			camYaw = -0.4f;
+		}
 
 		// camPitch += mouseCurrState.lY * 0.001f;
 
@@ -633,16 +648,18 @@ void DetectInput(double time)
 
 // 根据键盘与鼠标的输入，更新小车的位置
 void UpdateCar() {
-
-	carWorld = XMMatrixIdentity();
-
-	Scale = XMMatrixScaling(10.0f, 10.0f, 20.0f);
-	// Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
-
-	XMVECTOR rotxaxis = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-	Rotationx = XMMatrixRotationAxis(rotxaxis, camYaw);
-	Translation = XMMatrixTranslation(moveLeftRight, 15.0f, moveBackForward);
-	carWorld = Scale * Translation;
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw);
+	// 小车位置发生变动时
+	if (carLeft != carLastLeft || carForward != carLastForward) {
+		Translation = XMMatrixTranslation(carLeft - carLastLeft, 0.0f, carForward - carLastForward);
+		carLastLeft = carLeft;
+		carLastForward = carForward;
+	}
+	else {
+		Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+	}
+	carWorld = carWorld * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
 }
 
 void CleanUp()
@@ -982,6 +999,11 @@ bool InitCar() {
 	ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
 	vertexBufferData.pSysMem = v;
 	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &carVertBuffer);
+
+	carWorld = XMMatrixIdentity();
+	Scale = XMMatrixScaling(10.0f, 10.0f, 20.0f);
+	Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
+	carWorld = Scale * Translation;
 
 	return true;
 }
@@ -1519,19 +1541,11 @@ void UpdateScene(double time)
 	groundWorld = XMMatrixIdentity();
 
 	//Define cube1's world space matrix
-	Scale = XMMatrixScaling( 500.0f, 10.0f, 500.0f );
+	Scale = XMMatrixScaling( 1000.0f, 10.0f, 1000.0f );
 	Translation = XMMatrixTranslation( 0.0f, 10.0f, 0.0f );
 
 	//Set cube1's world space using the transformations
 	groundWorld = Scale * Translation;
-
-	// car world
-	//carWorld = XMMatrixIdentity();
-
-	//Scale = XMMatrixScaling(10.0f, 10.0f, 20.0f);
-	//Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
-
-	//carWorld = Scale * Translation;
 
 	//wheel word1
 	wheelWorld = XMMatrixIdentity();
@@ -1554,7 +1568,12 @@ void UpdateScene(double time)
 	sphereWorld = Scale * Translation;
 	///////////////**************new**************////////////////////
 
-	UpdateCar();
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition)-2, XMVectorGetZ(camPosition) + 8);;
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
+	carWorld = (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
+
+	//UpdateCar();
 }
 
 void RenderText(std::wstring text, int inInt)
