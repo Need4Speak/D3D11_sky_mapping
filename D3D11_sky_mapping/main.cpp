@@ -1,275 +1,4 @@
-
-//Include and link appropriate libraries and headers//
-#pragma comment(lib, "d3d11.lib")
-#pragma comment(lib, "d3dx11.lib")
-#pragma comment(lib, "d3dx10.lib")
-#pragma comment (lib, "D3D10_1.lib")
-#pragma comment (lib, "DXGI.lib")
-#pragma comment (lib, "D2D1.lib")
-#pragma comment (lib, "dwrite.lib")
-#pragma comment (lib, "dinput8.lib")
-#pragma comment (lib, "dxguid.lib")
-
-#include <windows.h>
-#include <d3d11.h>
-#include <d3dx11.h>
-#include <d3dx10.h>
-#include <xnamath.h>
-#include <D3D10_1.h>
-#include <DXGI.h>
-#include <D2D1.h>
-#include <sstream>
-#include <dwrite.h>
-#include <dinput.h>
-///////////////**************new**************////////////////////
-#include <vector>
-///////////////**************new**************////////////////////
-#include "Car.h"
-
-//Global Declarations - Interfaces//
-IDXGISwapChain* SwapChain;
-ID3D11Device* d3d11Device;
-ID3D11DeviceContext* d3d11DevCon;
-ID3D11RenderTargetView* renderTargetView;
-ID3D11Buffer* squareIndexBuffer;
-ID3D11DepthStencilView* depthStencilView;
-ID3D11Texture2D* depthStencilBuffer;
-ID3D11Buffer* squareVertBuffer;
-ID3D11VertexShader* VS;
-ID3D11PixelShader* PS;
-ID3D11PixelShader* D2D_PS;
-ID3D10Blob* D2D_PS_Buffer;
-ID3D10Blob* VS_Buffer;
-ID3D10Blob* PS_Buffer;
-ID3D11InputLayout* vertLayout;
-ID3D11Buffer* cbPerObjectBuffer;
-ID3D11BlendState* Transparency;
-ID3D11RasterizerState* CCWcullMode;
-ID3D11RasterizerState* CWcullMode;
-ID3D11RasterizerState* CarcullMode;
-ID3D11ShaderResourceView* GroundTexture;
-ID3D11ShaderResourceView* BoxTexture;
-ID3D11SamplerState* CubesTexSamplerState;
-ID3D11Buffer* cbPerFrameBuffer;
-
-ID3D10Device1 *d3d101Device;	
-IDXGIKeyedMutex *keyedMutex11;
-IDXGIKeyedMutex *keyedMutex10;	
-ID2D1RenderTarget *D2DRenderTarget;	
-ID2D1SolidColorBrush *Brush;
-ID3D11Texture2D *BackBuffer11;
-ID3D11Texture2D *sharedTex11;	
-ID3D11Buffer *d2dVertBuffer;
-ID3D11Buffer *d2dIndexBuffer;
-ID3D11ShaderResourceView *d2dTexture;
-IDWriteFactory *DWriteFactory;
-IDWriteTextFormat *TextFormat;
-
-IDirectInputDevice8* DIKeyboard;
-IDirectInputDevice8* DIMouse;
-
-///////////////**************new**************////////////////////
-ID3D11Buffer* sphereIndexBuffer;
-ID3D11Buffer* sphereVertBuffer;
-// 汽车模型
-ID3D11Buffer* carIndexBuffer;
-ID3D11Buffer* carVertBuffer;
-
-// 轮子模型
-ID3D11Buffer* wheelIndexBuffer;
-ID3D11Buffer* wheelVertBuffer;
-
-ID3D11VertexShader* SKYMAP_VS;
-ID3D11PixelShader* SKYMAP_PS;
-ID3D10Blob* SKYMAP_VS_Buffer;
-ID3D10Blob* SKYMAP_PS_Buffer;
-
-ID3D11ShaderResourceView* smrv;
-
-ID3D11DepthStencilState* DSLessEqual;
-ID3D11RasterizerState* RSCullNone;
-///////////////**************new**************////////////////////
-
-std::wstring printText;
-
-//Global Declarations - Others//
-LPCTSTR WndClassName = L"firstwindow";
-HWND hwnd = NULL;
-HRESULT hr;
-
-int Width  = 800;
-int Height = 600;
-
-DIMOUSESTATE mouseLastState;
-LPDIRECTINPUT8 DirectInput;
-
-float rotx = 0;
-float rotz = 0;
-float scaleX = 1.0f;
-float scaleY = 1.0f;
-
-XMMATRIX Rotationx;
-XMMATRIX Rotationy;
-XMMATRIX Rotationz;
-
-XMMATRIX WVP;
-XMMATRIX cube1World;
-XMMATRIX cube2World;
-XMMATRIX carWorld;
-XMMATRIX wheelWorld;
-XMMATRIX camView;
-XMMATRIX camProjection;
-
-XMMATRIX d2dWorld;
-
-XMVECTOR camPosition;
-XMVECTOR camTarget;
-XMVECTOR camUp;
-XMVECTOR DefaultForward = XMVectorSet(0.0f,0.0f,1.0f, 0.0f);
-XMVECTOR DefaultRight = XMVectorSet(1.0f,0.0f,0.0f, 0.0f);
-XMVECTOR camForward = XMVectorSet(0.0f,0.0f,1.0f, 0.0f);
-XMVECTOR camRight = XMVectorSet(1.0f,0.0f,0.0f, 0.0f);
-
-XMMATRIX camRotationMatrix;
-XMMATRIX groundWorld;
-
-float moveLeftRight = 0.0f;
-float moveBackForward = 0.0f;
-
-float carForward = 0.0f;
-float carLeft = 0.0f;
-float carLastForward = 0.0f;
-float carLastLeft = 0.0f;
-
-float camYaw = 0.0f;
-float camPitch = 0.0f;
-
-// 小车左右转向角度
-float camCarTurnRigth = 0.0f;
-
-int cylinderVerticesCount;
-
-///////////////**************new**************////////////////////
-int NumSphereVertices;
-int NumSphereFaces;
-
-XMMATRIX sphereWorld;
-///////////////**************new**************////////////////////
-
-XMMATRIX Rotation;
-XMMATRIX Scale;
-XMMATRIX Translation;
-float rot = 0.01f;
-
-double countsPerSecond = 0.0;
-__int64 CounterStart = 0;
-
-int frameCount = 0;
-int fps = 0;
-
-__int64 frameTimeOld = 0;
-double frameTime;
-
-//Function Prototypes//
-bool InitializeDirect3d11App(HINSTANCE hInstance);
-void CleanUp();
-bool InitScene();
-void DrawScene();
-bool InitD2D_D3D101_DWrite(IDXGIAdapter1 *Adapter);
-void InitD2DScreenTexture();
-void UpdateScene(double time);
-bool InitCar();
-
-struct Vertex	//Overloaded Vertex Structure
-{
-	Vertex() {}
-	Vertex(float x, float y, float z,
-		float u, float v,
-		float nx, float ny, float nz)
-		: pos(x, y, z), texCoord(u, v), normal(nx, ny, nz) {}
-
-	XMFLOAT3 pos;
-	XMFLOAT2 texCoord;
-	XMFLOAT3 normal;
-};
-
-struct MeshData
-{
-	std::vector<Vertex> Vertices;
-	std::vector<UINT> Indices;
-};
-
-void CreateCylinder(float bottomRadius, float topRadius, float height, UINT sliceCount, UINT stackCount, MeshData& meshData);
-
-void UpdateCamera();
-void UpdateCar();
-///////////////**************new**************////////////////////
-void CreateSphere(int LatLines, int LongLines);
-void BuildCylinderTopCap(float bottomRadius, float topRadius, float height, UINT sliceCount, UINT stackCount, MeshData& meshData);
-void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height, UINT sliceCount, UINT stackCount, MeshData& meshData);
-
-///////////////**************new**************////////////////////
-
-void RenderText(std::wstring text, int inInt);
-
-void StartTimer();
-double GetTime();
-double GetFrameTime();
-
-bool InitializeWindow(HINSTANCE hInstance,
-	int ShowWnd,
-	int width, int height,
-	bool windowed);
-int messageloop();
-
-bool InitDirectInput(HINSTANCE hInstance);
-void DetectInput(double time);
-
-LRESULT CALLBACK WndProc(HWND hWnd,
-	UINT msg,
-	WPARAM wParam,
-	LPARAM lParam);
-
-//Create effects constant buffer's structure//
-struct cbPerObject
-{
-	XMMATRIX  WVP;
-	XMMATRIX World;
-};
-
-cbPerObject cbPerObj;
-
-struct Light
-{
-	Light()
-	{
-		ZeroMemory(this, sizeof(Light));
-	}
-	XMFLOAT3 dir;
-	float pad;
-	XMFLOAT4 ambient;
-	XMFLOAT4 diffuse;
-};
-
-Light light;
-
-struct cbPerFrame
-{
-	Light  light;
-};
-
-cbPerFrame constbuffPerFrame;
-
-
-
-
-D3D11_INPUT_ELEMENT_DESC layout[] =
-{
-	{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },  
-	{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },  
-	{ "NORMAL",	 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0}
-};
-UINT numElements = ARRAYSIZE(layout);
+#include "Header.h"
 
 int WINAPI WinMain(HINSTANCE hInstance,	//Main windows function
 	HINSTANCE hPrevInstance, 
@@ -646,22 +375,6 @@ void DetectInput(double time)
 	return;
 }
 
-// 根据键盘与鼠标的输入，更新小车的位置
-void UpdateCar() {
-	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw);
-	// 小车位置发生变动时
-	if (carLeft != carLastLeft || carForward != carLastForward) {
-		Translation = XMMatrixTranslation(carLeft - carLastLeft, 0.0f, carForward - carLastForward);
-		carLastLeft = carLeft;
-		carLastForward = carForward;
-	}
-	else {
-		Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
-	}
-	carWorld = carWorld * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
-}
-
 void CleanUp()
 {
 	SwapChain->SetFullscreenState(false, NULL);
@@ -724,7 +437,7 @@ void CleanUp()
 	///////////////**************new**************////////////////////
 }
 
-///////////////**************new**************////////////////////
+// 天空盒
 void CreateSphere(int LatLines, int LongLines)
 {
 	NumSphereVertices = ((LatLines-2) * LongLines) + 2;
@@ -845,9 +558,7 @@ void CreateSphere(int LatLines, int LongLines)
 
 	iinitData.pSysMem = &indices[0];
 	d3d11Device->CreateBuffer(&indexBufferDesc, &iinitData, &sphereIndexBuffer);
-
 }
-///////////////**************new**************////////////////////
 
 void InitD2DScreenTexture()
 {
@@ -902,10 +613,15 @@ void InitD2DScreenTexture()
 	d3d11Device->CreateShaderResourceView(sharedTex11, NULL, &d2dTexture);
 }
 
-// 创建小车
-bool InitCar() {
+// 初始化小车 vertex buffer 与 index buffer
+bool InitCarBuffer() {
+	InitBoxBuffer();
+	InitWheelBuffer();
+	return true;
+}
+// 初始化车体 box vertex buffer 与 index buffer
+void InitBoxBuffer() {
 	//Create the vertex buffer
-
 	Vertex v[] =
 	{
 		// Front Face
@@ -1000,15 +716,54 @@ bool InitCar() {
 	vertexBufferData.pSysMem = v;
 	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &carVertBuffer);
 
-	carWorld = XMMatrixIdentity();
+	boxWorld = XMMatrixIdentity();
 	Scale = XMMatrixScaling(10.0f, 10.0f, 20.0f);
 	Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
-	carWorld = Scale * Translation;
-
-	return true;
+	boxWorld = Scale * Translation;
 }
 
-void drawCar() {
+// 初始化轮子 vertex buffer 与 index buffer
+void InitWheelBuffer() {
+	//Create the vertex buffer
+	MeshData cylinder;
+	CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20, cylinder);
+
+	cylinderVerticesCount = cylinder.Vertices.size();
+	int indicesCount = cylinder.Indices.size();
+
+	// index
+	D3D11_BUFFER_DESC indexBufferDesc;
+	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
+	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	indexBufferDesc.ByteWidth = sizeof(UINT) * indicesCount;
+	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	indexBufferDesc.CPUAccessFlags = 0;
+	indexBufferDesc.MiscFlags = 0;
+	D3D11_SUBRESOURCE_DATA iinitData;
+	iinitData.pSysMem = &cylinder.Indices[0];
+	d3d11Device->CreateBuffer(&indexBufferDesc, &iinitData, &wheelIndexBuffer);
+
+	// vertex
+	D3D11_BUFFER_DESC vertexBufferDesc;
+	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
+	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	vertexBufferDesc.ByteWidth = sizeof(Vertex) * cylinderVerticesCount;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	vertexBufferDesc.CPUAccessFlags = 0;
+	vertexBufferDesc.MiscFlags = 0;
+	D3D11_SUBRESOURCE_DATA vertexBufferData;
+	ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
+	vertexBufferData.pSysMem = &cylinder.Vertices[0];
+	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &wheelVertBuffer);
+}
+
+// 画小车
+void DrawCar() {
+	DrawBox();
+	DrawWheel();
+}
+// 画小车车体
+void DrawBox() {
 	//Set the cubes index buffer
 	d3d11DevCon->IASetIndexBuffer(carIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	//Set the cubes vertex buffer
@@ -1017,8 +772,8 @@ void drawCar() {
 	d3d11DevCon->IASetVertexBuffers(0, 1, &carVertBuffer, &stride, &offset);
 
 	//Set the WVP matrix and send it to the constant buffer in effect file
-	WVP = carWorld * camView * camProjection;
-	cbPerObj.World = XMMatrixTranspose(carWorld);
+	WVP = boxWorld * camView * camProjection;
+	cbPerObj.World = XMMatrixTranspose(boxWorld);
 	cbPerObj.WVP = XMMatrixTranspose(WVP);
 	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
 	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
@@ -1028,48 +783,119 @@ void drawCar() {
 	d3d11DevCon->RSSetState(CarcullMode);
 	d3d11DevCon->DrawIndexed(36, 0, 0);
 }
+// 画小车轮子
+void DrawWheel() {
+	//Set the cubes index buffer
+	d3d11DevCon->IASetIndexBuffer(wheelIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//Set the cubes vertex buffer
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	d3d11DevCon->IASetVertexBuffers(0, 1, &wheelVertBuffer, &stride, &offset);
 
-// 创建轮子
-bool InitWheel() {
-	//Create the vertex buffer
-	MeshData cylinder;
-	CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20, cylinder);
+	for (int i = 0; i < 4; i++) {
+		//Set the WVP matrix and send it to the constant buffer in effect file
+		WVP = wheelWorld[i] * camView * camProjection;
+		cbPerObj.World = XMMatrixTranspose(wheelWorld[i]);
+		cbPerObj.WVP = XMMatrixTranspose(WVP);
+		d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+		d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+		d3d11DevCon->PSSetShaderResources(0, 1, &BoxTexture);
+		d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
 
-	cylinderVerticesCount = cylinder.Vertices.size();
-	int indicesCount = cylinder.Indices.size();
-
-	D3D11_BUFFER_DESC indexBufferDesc;
-	ZeroMemory(&indexBufferDesc, sizeof(indexBufferDesc));
-
-	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(UINT) * indicesCount;
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	indexBufferDesc.CPUAccessFlags = 0;
-	indexBufferDesc.MiscFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA iinitData;
-
-	iinitData.pSysMem = &cylinder.Indices[0];
-	d3d11Device->CreateBuffer(&indexBufferDesc, &iinitData, &wheelIndexBuffer);
-
-	D3D11_BUFFER_DESC vertexBufferDesc;
-	ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(Vertex) * cylinderVerticesCount;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.CPUAccessFlags = 0;
-	vertexBufferDesc.MiscFlags = 0;
-
-	D3D11_SUBRESOURCE_DATA vertexBufferData;
-
-	ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
-	vertexBufferData.pSysMem = &cylinder.Vertices[0];
-	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &wheelVertBuffer);
-
-	return true;
+		d3d11DevCon->RSSetState(CarcullMode);
+		d3d11DevCon->DrawIndexed(cylinderVerticesCount, 0, 0);
+	}
 }
+// 根据键盘与鼠标的输入，更新小车的位置
+void UpdateCar() {
+	UpdateBox();
+	UpdateWheel();
+	//XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	//Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw);
+	//// 小车位置发生变动时
+	//if (carLeft != carLastLeft || carForward != carLastForward) {
+	//	Translation = XMMatrixTranslation(carLeft - carLastLeft, 0.0f, carForward - carLastForward);
+	//	carLastLeft = carLeft;
+	//	carLastForward = carForward;
+	//}
+	//else {
+	//	Translation = XMMatrixTranslation(0.0f, 0.0f, 0.0f);
+	//}
+	//boxWorld = boxWorld * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
+	
+}
+void UpdateBox() {
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 8);
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
+	boxWorld = (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
+}
+void UpdateWheel() {
+	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
+	XMMATRIX Rotationz = XMMatrixRotationAxis(rotzaxis, 1.6f);
 
+	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	XMMATRIX Rotationy = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
+	Scale = XMMatrixScaling(2.0f, 2.0f, 2.0f);
+	XMMATRIX temp = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx);
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition)  , XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 12);
+	wheelWorld[0] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz ) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 14);
+	wheelWorld[1] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 16);
+	wheelWorld[2] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 18);
+	wheelWorld[3] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
+}
+// 画地表
+void DrawGround() {
+	//Set the grounds index buffer
+	d3d11DevCon->IASetIndexBuffer(squareIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//Set the grounds vertex buffer
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	d3d11DevCon->IASetVertexBuffers(0, 1, &squareVertBuffer, &stride, &offset);
+
+	//Set the WVP matrix and send it to the constant buffer in effect file
+	WVP = groundWorld * camView * camProjection;
+	cbPerObj.WVP = XMMatrixTranspose(WVP);
+	cbPerObj.World = XMMatrixTranspose(groundWorld);
+	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+	d3d11DevCon->PSSetShaderResources(0, 1, &GroundTexture);
+	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
+
+	d3d11DevCon->RSSetState(CCWcullMode);
+	d3d11DevCon->DrawIndexed(6, 0, 0);
+}
+// 画天空盒
+void DrawSky() {
+	//Set the grounds vertex buffer
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	
+	d3d11DevCon->IASetIndexBuffer(sphereIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//Set the spheres vertex buffer
+	d3d11DevCon->IASetVertexBuffers(0, 1, &sphereVertBuffer, &stride, &offset);
+
+	//Set the WVP matrix and send it to the constant buffer in effect file
+	WVP = sphereWorld * camView * camProjection;
+	cbPerObj.WVP = XMMatrixTranspose(WVP);
+	cbPerObj.World = XMMatrixTranspose(sphereWorld);
+	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+	//Send our skymap resource view to pixel shader
+	d3d11DevCon->PSSetShaderResources(0, 1, &smrv);
+	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
+
+	//Set the new VS and PS shaders
+	d3d11DevCon->VSSetShader(SKYMAP_VS, 0, 0);
+	d3d11DevCon->PSSetShader(SKYMAP_PS, 0, 0);
+	//Set the new depth/stencil and RS states
+	d3d11DevCon->OMSetDepthStencilState(DSLessEqual, 0);
+	d3d11DevCon->RSSetState(RSCullNone);
+	d3d11DevCon->DrawIndexed(NumSphereFaces * 3, 0, 0);
+}
 void CreateCylinder(float bottomRadius, float topRadius, float height, UINT sliceCount, UINT stackCount, MeshData& meshData)
 {
 	meshData.Vertices.clear();
@@ -1238,29 +1064,6 @@ void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height,
 	}
 }
 
-void drawWheel() {
-	//Set the cubes index buffer
-	d3d11DevCon->IASetIndexBuffer(wheelIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	//Set the cubes vertex buffer
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
-	d3d11DevCon->IASetVertexBuffers(0, 1, &wheelVertBuffer, &stride, &offset);
-
-	//Set the WVP matrix and send it to the constant buffer in effect file
-	WVP = wheelWorld * camView * camProjection;
-	cbPerObj.World = XMMatrixTranspose(wheelWorld);
-	cbPerObj.WVP = XMMatrixTranspose(WVP);
-	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
-	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
-	d3d11DevCon->PSSetShaderResources(0, 1, &BoxTexture);
-	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
-
-	d3d11DevCon->RSSetState(CarcullMode);
-	d3d11DevCon->DrawIndexed(cylinderVerticesCount, 0, 0);
-}
-
-// 在世界中画小车
-
 
 bool InitScene()
 {
@@ -1283,10 +1086,8 @@ bool InitScene()
 	hr = d3d11Device->CreateVertexShader(VS_Buffer->GetBufferPointer(), VS_Buffer->GetBufferSize(), NULL, &VS);
 	hr = d3d11Device->CreatePixelShader(PS_Buffer->GetBufferPointer(), PS_Buffer->GetBufferSize(), NULL, &PS);
 	hr = d3d11Device->CreatePixelShader(D2D_PS_Buffer->GetBufferPointer(), D2D_PS_Buffer->GetBufferSize(), NULL, &D2D_PS);
-	///////////////**************new**************////////////////////
 	hr = d3d11Device->CreateVertexShader(SKYMAP_VS_Buffer->GetBufferPointer(), SKYMAP_VS_Buffer->GetBufferSize(), NULL, &SKYMAP_VS);
 	hr = d3d11Device->CreatePixelShader(SKYMAP_PS_Buffer->GetBufferPointer(), SKYMAP_PS_Buffer->GetBufferSize(), NULL, &SKYMAP_PS);
-	///////////////**************new**************////////////////////
 
 	//Set Vertex and Pixel Shaders
 	d3d11DevCon->VSSetShader(VS, 0, 0);
@@ -1340,8 +1141,7 @@ bool InitScene()
 	vertexBufferData.pSysMem = v;
 	hr = d3d11Device->CreateBuffer( &vertexBufferDesc, &vertexBufferData, &squareVertBuffer);
 
-	InitCar();
-	InitWheel();
+	InitCarBuffer();
 
 	//Create the Input Layout
 	hr = d3d11Device->CreateInputLayout( layout, numElements, VS_Buffer->GetBufferPointer(), 
@@ -1425,7 +1225,6 @@ bool InitScene()
 	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, L"box2.jpg",
 		NULL, NULL, &BoxTexture, NULL);
 
-	///////////////**************new**************////////////////////
 	//Tell D3D we will be loading a cube texture
 	D3DX11_IMAGE_LOAD_INFO loadSMInfo;
 	loadSMInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
@@ -1448,7 +1247,6 @@ bool InitScene()
 
 	//Create the Resource view
 	hr = d3d11Device->CreateShaderResourceView(SMTexture, &SMViewDesc, &smrv);
-	///////////////**************new**************////////////////////
 
 	// Describe the Sample State
 	D3D11_SAMPLER_DESC sampDesc;
@@ -1497,9 +1295,34 @@ bool InitScene()
 	dssDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 
 	d3d11Device->CreateDepthStencilState(&dssDesc, &DSLessEqual);
-	///////////////**************new**************////////////////////
 
 	return true;
+}
+
+void UpdateScene(double time)
+{
+	//Reset groundWorld
+	groundWorld = XMMatrixIdentity();
+
+	//Define cube1's world space matrix
+	Scale = XMMatrixScaling(1000.0f, 10.0f, 1000.0f);
+	Translation = XMMatrixTranslation(0.0f, 10.0f, 0.0f);
+
+	//Set cube1's world space using the transformations
+	groundWorld = Scale * Translation;
+
+	//Reset sphereWorld
+	sphereWorld = XMMatrixIdentity();
+
+	//Define sphereWorld's world space matrix
+	Scale = XMMatrixScaling(5.0f, 5.0f, 5.0f);
+	//Make sure the sphere is always centered around camera
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition), XMVectorGetZ(camPosition));
+
+	//Set sphereWorld's world space using the transformations
+	sphereWorld = Scale * Translation;
+
+	UpdateCar();
 }
 
 void StartTimer()
@@ -1533,47 +1356,6 @@ double GetFrameTime()
 		tickCount = 0.0f;
 
 	return float(tickCount)/countsPerSecond;
-}
-
-void UpdateScene(double time)
-{
-	//Reset cube1World
-	groundWorld = XMMatrixIdentity();
-
-	//Define cube1's world space matrix
-	Scale = XMMatrixScaling( 1000.0f, 10.0f, 1000.0f );
-	Translation = XMMatrixTranslation( 0.0f, 10.0f, 0.0f );
-
-	//Set cube1's world space using the transformations
-	groundWorld = Scale * Translation;
-
-	//wheel word1
-	wheelWorld = XMMatrixIdentity();
-
-	Scale = XMMatrixScaling(20.0f, 20.0f, 20.0f);
-	Translation = XMMatrixTranslation(30.0f, 50.0f, 0.0f);
-
-	wheelWorld = Scale * Translation;
-
-	///////////////**************new**************////////////////////
-	//Reset sphereWorld
-	sphereWorld = XMMatrixIdentity();
-
-	//Define sphereWorld's world space matrix
-	Scale = XMMatrixScaling( 5.0f, 5.0f, 5.0f );
-	//Make sure the sphere is always centered around camera
-	Translation = XMMatrixTranslation( XMVectorGetX(camPosition), XMVectorGetY(camPosition), XMVectorGetZ(camPosition) );
-
-	//Set sphereWorld's world space using the transformations
-	sphereWorld = Scale * Translation;
-	///////////////**************new**************////////////////////
-
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition)-2, XMVectorGetZ(camPosition) + 8);;
-	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
-	carWorld = (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
-
-	//UpdateCar();
 }
 
 void RenderText(std::wstring text, int inInt)
@@ -1673,56 +1455,13 @@ void DrawScene()
 	d3d11DevCon->VSSetShader(VS, 0, 0);
 	d3d11DevCon->PSSetShader(PS, 0, 0);
 
-	//Set the grounds index buffer
-	d3d11DevCon->IASetIndexBuffer( squareIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	//Set the grounds vertex buffer
-	UINT stride = sizeof( Vertex );
-	UINT offset = 0;
-	d3d11DevCon->IASetVertexBuffers( 0, 1, &squareVertBuffer, &stride, &offset );
-
-	//Set the WVP matrix and send it to the constant buffer in effect file
-	WVP = groundWorld * camView * camProjection;
-	cbPerObj.WVP = XMMatrixTranspose(WVP);	
-	cbPerObj.World = XMMatrixTranspose(groundWorld);	
-	d3d11DevCon->UpdateSubresource( cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0 );
-	d3d11DevCon->VSSetConstantBuffers( 0, 1, &cbPerObjectBuffer );
-	d3d11DevCon->PSSetShaderResources( 0, 1, &GroundTexture );
-	d3d11DevCon->PSSetSamplers( 0, 1, &CubesTexSamplerState );
-
-	d3d11DevCon->RSSetState(CCWcullMode);
-	d3d11DevCon->DrawIndexed( 6, 0, 0 );
-
-	drawCar();
-	drawWheel();
-
-	///////////////**************new**************////////////////////
-	//Set the spheres index buffer
-	d3d11DevCon->IASetIndexBuffer( sphereIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-	//Set the spheres vertex buffer
-	d3d11DevCon->IASetVertexBuffers( 0, 1, &sphereVertBuffer, &stride, &offset );
-
-	//Set the WVP matrix and send it to the constant buffer in effect file
-	WVP = sphereWorld * camView * camProjection;
-	cbPerObj.WVP = XMMatrixTranspose(WVP);	
-	cbPerObj.World = XMMatrixTranspose(sphereWorld);	
-	d3d11DevCon->UpdateSubresource( cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0 );
-	d3d11DevCon->VSSetConstantBuffers( 0, 1, &cbPerObjectBuffer );
-	//Send our skymap resource view to pixel shader
-	d3d11DevCon->PSSetShaderResources( 0, 1, &smrv );
-	d3d11DevCon->PSSetSamplers( 0, 1, &CubesTexSamplerState );
-
-	//Set the new VS and PS shaders
-	d3d11DevCon->VSSetShader(SKYMAP_VS, 0, 0);
-	d3d11DevCon->PSSetShader(SKYMAP_PS, 0, 0);
-	//Set the new depth/stencil and RS states
-	d3d11DevCon->OMSetDepthStencilState(DSLessEqual, 0);
-	d3d11DevCon->RSSetState(RSCullNone);
-	d3d11DevCon->DrawIndexed( NumSphereFaces * 3, 0, 0 );
+	DrawGround();
+	DrawCar();
+	DrawSky();
 
 	//Set the default VS shader and depth/stencil state
 	d3d11DevCon->VSSetShader(VS, 0, 0);
 	d3d11DevCon->OMSetDepthStencilState(NULL, 0);
-	///////////////**************new**************////////////////////
 
 	RenderText(L"FPS: ", fps);
 
