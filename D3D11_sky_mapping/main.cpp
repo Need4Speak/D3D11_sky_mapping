@@ -717,7 +717,7 @@ void InitBoxBuffer() {
 	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &carVertBuffer);
 
 	boxWorld = XMMatrixIdentity();
-	Scale = XMMatrixScaling(10.0f, 10.0f, 20.0f);
+	Scale = XMMatrixScaling(10.0f, 10.0f, 30.0f);
 	Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
 	boxWorld = Scale * Translation;
 }
@@ -726,7 +726,7 @@ void InitBoxBuffer() {
 void InitWheelBuffer() {
 	//Create the vertex buffer
 	MeshData cylinder;
-	CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20, cylinder);
+	CreateCylinder(0.5f, 0.5f, 1.0f, 20, 20, cylinder);
 
 	cylinderVerticesCount = cylinder.Vertices.size();
 	int indicesCount = cylinder.Indices.size();
@@ -827,25 +827,26 @@ void UpdateCar() {
 void UpdateBox() {
 	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 8);
 	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
-	boxWorld = (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
+	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 1);
+	Scale = XMMatrixScaling(1.0f, 1.0f, 2.0f);
+	boxWorld = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
 }
 void UpdateWheel() {
 	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-	XMMATRIX Rotationz = XMMatrixRotationAxis(rotzaxis, 1.6f);
+	XMMATRIX Rotationz = XMMatrixRotationAxis(rotzaxis, 1.55f);
 
 	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-	XMMATRIX Rotationy = XMMatrixRotationAxis(rotyaxis, camYaw * 2);
-	Scale = XMMatrixScaling(2.0f, 2.0f, 2.0f);
+	XMMATRIX Rotationy = XMMatrixRotationAxis(rotyaxis, camYaw * 1);
+	Scale = XMMatrixScaling(1.5f, 1.5f, 1.5f);
 	XMMATRIX temp = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx);
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition)  , XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 12);
-	wheelWorld[0] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz ) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 14);
-	wheelWorld[1] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 16);
-	wheelWorld[2] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 18);
-	wheelWorld[3] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationz) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.2  , XMVectorGetY(camPosition) - 3.5, XMVectorGetZ(camPosition) + 7);
+	wheelWorld[0] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.6, XMVectorGetY(camPosition) - 4, XMVectorGetZ(camPosition) + 10);
+	wheelWorld[1] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.5, XMVectorGetY(camPosition) - 3.5, XMVectorGetZ(camPosition) + 7);
+	wheelWorld[2] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.8, XMVectorGetY(camPosition) - 4, XMVectorGetZ(camPosition) + 10);
+	wheelWorld[3] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
 }
 // »­µØ±í
 void DrawGround() {
