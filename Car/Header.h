@@ -21,7 +21,6 @@
 #include <dwrite.h>
 #include <dinput.h>
 #include <vector>
-#include "Car.h"
 
 //Global Declarations - Interfaces//
 IDXGISwapChain* SwapChain;
@@ -115,12 +114,14 @@ XMMATRIX wheel1World;
 XMMATRIX wheel2World;
 XMMATRIX wheel3World;
 XMMATRIX wheel4World;
+XMMATRIX houseWorld;
 // 地表
 XMMATRIX groundWorld;
 // 天空盒
 XMMATRIX sphereWorld;
 
 XMMATRIX d2dWorld;
+bool FirstPerson = false;
 // 摄像机
 XMMATRIX camView;
 XMMATRIX camProjection;
@@ -132,6 +133,7 @@ XMVECTOR DefaultRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 XMVECTOR camForward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 XMVECTOR camRight = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 XMMATRIX camRotationMatrix;
+bool CamUpdateFlag = false;
 
 
 float moveLeftRight = 0.0f;
@@ -144,6 +146,7 @@ float carLastLeft = 0.0f;
 
 float camYaw = 0.0f;
 float camPitch = 0.0f;
+int position = 0;
 
 // 小车左右转向角度
 float camCarTurnRigth = 0.0f;
@@ -245,8 +248,8 @@ void DrawCar();
 void DrawBox();
 void DrawWheel();
 void UpdateCar();
-void UpdateBox();
-void UpdateWheel();
+void UpdateBox(int position);
+void UpdateWheel(int position);
 // 创建几何体
 void CreateSphere(int LatLines, int LongLines);
 void CreateCylinder(float bottomRadius, float topRadius, float height, UINT sliceCount, UINT stackCount, MeshData& meshData);

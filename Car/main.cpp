@@ -316,10 +316,20 @@ void UpdateCamera()
 	moveLeftRight = 0.0f;
 	moveBackForward = 0.0f;
 
+	if (CamUpdateFlag) {
+		if (FirstPerson) {
+			camPosition += XMVectorSet(0.0f, -10.0f, 0.0f, 0.0f);
+		}
+		else {
+			camPosition += XMVectorSet(0.0f, 10.0f, 0.0f, 0.0f);
+		}
+		
+		CamUpdateFlag = false;
+	}
+
 	camTarget = camPosition + camTarget;	
 
 	camView = XMMatrixLookAtLH( camPosition, camTarget, camUp );
-	test();
 }
 
 void DetectInput(double time)
@@ -355,6 +365,22 @@ void DetectInput(double time)
 	if(keyboardState[DIK_S] & 0x80)
 	{
 		moveBackForward -= speed;
+	}
+	// 第一/三人称切换
+	if (keyboardState[DIK_1] & 0x80)
+	{
+		if (!FirstPerson) {
+			FirstPerson = true;
+			moveBackForward += 10.0;
+			CamUpdateFlag = true;
+		}
+	} else if (keyboardState[DIK_2] & 0x80)
+	{
+		if (FirstPerson) {
+			FirstPerson = false;
+			moveBackForward -= 10.0;
+			CamUpdateFlag = true;
+		}
 	}
 	if((mouseCurrState.lX != mouseLastState.lX) || (mouseCurrState.lY != mouseLastState.lY))
 	{
@@ -715,11 +741,6 @@ void InitBoxBuffer() {
 	ZeroMemory(&vertexBufferData, sizeof(vertexBufferData));
 	vertexBufferData.pSysMem = v;
 	hr = d3d11Device->CreateBuffer(&vertexBufferDesc, &vertexBufferData, &carVertBuffer);
-
-	boxWorld = XMMatrixIdentity();
-	Scale = XMMatrixScaling(10.0f, 10.0f, 30.0f);
-	Translation = XMMatrixTranslation(0.0f, 15.0f, 0.0f);
-	boxWorld = Scale * Translation;
 }
 
 // 初始化轮子 vertex buffer 与 index buffer
@@ -806,10 +827,39 @@ void DrawWheel() {
 		d3d11DevCon->DrawIndexed(cylinderVerticesCount, 0, 0);
 	}
 }
+void DrawHouse() {
+	houseWorld = XMMatrixIdentity();
+	Scale = XMMatrixScaling(20.0f, 80.0f, 20.0f);
+	Translation = XMMatrixTranslation(40.0f, 20.0f, 200.0f);
+
+	houseWorld = Scale * Translation;
+	//Set the cubes index buffer
+	d3d11DevCon->IASetIndexBuffer(carIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	//Set the cubes vertex buffer
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	d3d11DevCon->IASetVertexBuffers(0, 1, &carVertBuffer, &stride, &offset);
+
+	//Set the WVP matrix and send it to the constant buffer in effect file
+	WVP = houseWorld * camView * camProjection;
+	cbPerObj.World = XMMatrixTranspose(houseWorld);
+	cbPerObj.WVP = XMMatrixTranspose(WVP);
+	d3d11DevCon->UpdateSubresource(cbPerObjectBuffer, 0, NULL, &cbPerObj, 0, 0);
+	d3d11DevCon->VSSetConstantBuffers(0, 1, &cbPerObjectBuffer);
+	d3d11DevCon->PSSetShaderResources(0, 1, &BoxTexture);
+	d3d11DevCon->PSSetSamplers(0, 1, &CubesTexSamplerState);
+
+	d3d11DevCon->RSSetState(CarcullMode);
+	d3d11DevCon->DrawIndexed(36, 0, 0);
+}
 // 根据键盘与鼠标的输入，更新小车的位置
 void UpdateCar() {
-	UpdateBox();
-	UpdateWheel();
+	position = 0;
+	if (FirstPerson) {
+		position = 16;
+	}
+	UpdateBox(position);
+	UpdateWheel(position);
 	//XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	//Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw);
 	//// 小车位置发生变动时
@@ -824,14 +874,14 @@ void UpdateCar() {
 	//boxWorld = boxWorld * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
 	
 }
-void UpdateBox() {
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 2, XMVectorGetZ(camPosition) + 8);
+void UpdateBox(int position) {
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition), XMVectorGetY(camPosition) - 4, XMVectorGetZ(camPosition) + 8 + 5 - position);
 	XMVECTOR rotyaxis = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	Rotationx = XMMatrixRotationAxis(rotyaxis, camYaw * 1);
 	Scale = XMMatrixScaling(1.0f, 1.0f, 2.0f);
 	boxWorld = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx * Translation);
 }
-void UpdateWheel() {
+void UpdateWheel(int position) {
 	XMVECTOR rotzaxis = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	XMMATRIX Rotationz = XMMatrixRotationAxis(rotzaxis, 1.55f);
 
@@ -839,13 +889,13 @@ void UpdateWheel() {
 	XMMATRIX Rotationy = XMMatrixRotationAxis(rotyaxis, camYaw * 1);
 	Scale = XMMatrixScaling(1.5f, 1.5f, 1.5f);
 	XMMATRIX temp = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f) * Rotationx);
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.2  , XMVectorGetY(camPosition) - 3.5, XMVectorGetZ(camPosition) + 7);
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.2  , XMVectorGetY(camPosition) - 5.5, XMVectorGetZ(camPosition) + 7 + 5 - position);
 	wheelWorld[0] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.6, XMVectorGetY(camPosition) - 4, XMVectorGetZ(camPosition) + 10);
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) + 0.6, XMVectorGetY(camPosition) - 6, XMVectorGetZ(camPosition) + 10 + 5 - position);
 	wheelWorld[1] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.5, XMVectorGetY(camPosition) - 3.5, XMVectorGetZ(camPosition) + 7);
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.5, XMVectorGetY(camPosition) - 5.5, XMVectorGetZ(camPosition) + 7 + 5 - position);
 	wheelWorld[2] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
-	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.8, XMVectorGetY(camPosition) - 4, XMVectorGetZ(camPosition) + 10);
+	Translation = XMMatrixTranslation(XMVectorGetX(camPosition) - 1.8, XMVectorGetY(camPosition) - 6, XMVectorGetZ(camPosition) + 10 + 5 - position);
 	wheelWorld[3] = Scale * (XMMatrixTranslation(0.0f, 0.0f, 0.0f)  * Rotationz * Rotationy) * Translation;
 }
 // 画地表
@@ -1223,7 +1273,7 @@ bool InitScene()
 	hr = D3DX11CreateShaderResourceViewFromFile( d3d11Device, L"grass.jpg",
 		NULL, NULL, &GroundTexture, NULL );
 
-	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, L"box2.jpg",
+	hr = D3DX11CreateShaderResourceViewFromFile(d3d11Device, L"box.jpg",
 		NULL, NULL, &BoxTexture, NULL);
 
 	//Tell D3D we will be loading a cube texture
@@ -1458,13 +1508,14 @@ void DrawScene()
 
 	DrawGround();
 	DrawCar();
+	DrawHouse();
 	DrawSky();
 
 	//Set the default VS shader and depth/stencil state
 	d3d11DevCon->VSSetShader(VS, 0, 0);
 	d3d11DevCon->OMSetDepthStencilState(NULL, 0);
 
-	RenderText(L"FPS: ", fps);
+	RenderText(L"W:前 S：后 A:左 D:右，鼠标转向\n1：第一人称，2：第三人称\n FPS: ", fps);
 
 	//Present the backbuffer to the screen
 	SwapChain->Present(0, 0);
